@@ -5,20 +5,22 @@ If Not IsEmpty(dobString) Then
     dob = CDate(dobString) 
     age = DateDiff("yyyy", dob, Now) 
 Else 
-    age = "Date of Birth data not found" 
+    Profile.MsgBox("Date of Birth data not found") 
 End If 
+
+Profile.MsgBox("Age: " & age & ", Type: " & TypeName(age))
 
 ' Retrieve gender 
 gender = Patient.Sex 
 
-If IsEmpty(gender) Then 
-    gender = "Gender data not found" 
+If IsEmpty(gender) Then  
+    Profile.MsgBox("Gender data not found") 
 End If 
 
-'Get blood pressure: // returns SBP as an integer 
+Profile.MsgBox("Gender: " & gender & ", Type: " & TypeName(gender))
 
+' Get blood pressure: 
 Set aPatient = Patient 
-
 aConceptCode = "z..2W" ' Use the concept code for blood pressure 
 aTermsetCode = "IH" 
 aDateFrom = #01/01/2000# 
@@ -27,11 +29,9 @@ aUseCrossRefs = False
 
 Set aLatestHRI = aPatient.GetLatestHRI(aTermsetCode, aConceptCode, aDateFrom, aDateTo, aUseCrossRefs) 
 
-  
 If aLatestHRI Is Nothing Then 
     Profile.MsgBox("There is no latest blood pressure data available.") 
 Else 
-
     ' Retrieve the blood pressure as a string 
     bloodPressureStr = aLatestHRI.AsString 
 
@@ -44,15 +44,10 @@ Else
     ' Convert systolicPressure to an integer 
     systolicPressure = CInt(systolicPressure) 
 
-    ' Get the variable type 
-    systolicPressureType = TypeName(systolicPressure) 
-
-    ' Display the systolic blood pressure (as an integer) and its variable type in a pop-up box 
-    Profile.MsgBox("Latest Systolic Pressure: " & systolicPressure & ", Type: " & systolicPressureType) 
+    Profile.MsgBox("Systolic Pressure: " & systolicPressure & ", Type: " & TypeName(systolicPressure))
 End If 
 
-'Get total cholesterol – returns value as a double: 
-
+' Get total cholesterol: 
 aDateTo = Now 
 aDateFrom = DateAdd("yyyy", -30, aDateTo) 
 aDateTo = DateAdd("yyyy", 1, aDateTo) 
@@ -67,20 +62,12 @@ If Not aResult Is Nothing Then
     ' Assuming the value is the first part of the string 
     cholesterolValue = CDbl(Split(aResultContentValue, " ")(0)) 
 
-    ' Get the variable type of cholesterolValue 
-    cholesterolType = TypeName(cholesterolValue) 
-
-    ' Display the extracted Total Cholesterol value and its variable type in a pop-up box 
-    Profile.MsgBox("Total Cholesterol: " & cholesterolValue & vbNewLine & "Variable Type: " & cholesterolType) 
+    Profile.MsgBox("Total Cholesterol: " & cholesterolValue & ", Type: " & TypeName(cholesterolValue))
 Else 
     Profile.MsgBox("No Total Cholesterol Result Found") 
 End If 
 
-'Get HDL cholesterol – returns value as a double: 
-aDateTo = Now 
-aDateFrom = DateAdd("yyyy", -30, aDateTo) 
-aDateTo = DateAdd("yyyy", 1, aDateTo) 
-
+' Get HDL cholesterol: 
 Set aResult = Patient.GetLatestHRI("FHAM", "14646-4", aDateFrom, aDateTo, 1) 
 If Not aResult Is Nothing Then 
     Set aResultContent = aResult.Content 
@@ -88,60 +75,64 @@ If Not aResult Is Nothing Then
 
     ' Extract only the numerical value from the string 
     ' Assuming the value is the first part of the string 
-    cholesterolValue = CDbl(Split(aResultContentValue, " ")(0)) 
+    HDLValue = CDbl(Split(aResultContentValue, " ")(0)) 
 
-    ' Get the variable type of cholesterolValue 
-    cholesterolType = TypeName(cholesterolValue) 
-
-    ' Display the extracted Total Cholesterol value and its variable type in a pop-up box 
-    Profile.MsgBox("HDL: " & cholesterolValue & vbNewLine & "Variable Type: " & cholesterolType) 
+    Profile.MsgBox("HDL: " & HDLValue & ", Type: " & TypeName(HDLValue))
 Else 
-    Profile.MsgBox("No HDL Result Found") 
+   Profile.MsgBox("No HDL Result Found") 
 End If 
 
- 'Get smoking status – returns smoking type as a LONG: 
-' Retrieve smoking Type  
+' Get smoking status: 
 smoker = Patient.SmokerType  
 
-' Get the variable type  
-    smokerType = TypeName(smoker) 
+Profile.MsgBox("Smoker Type: " & smoker & ", Type: " & TypeName(smoker))
 
-If IsEmpty(smoker) Then  
-    gender = "Smoking data not found"  
-Else 
-    Profile.MsgBox (smoker & vbNewLine & "Variable Type: " & smokerType)    
-End If  
+' Get diabetes status:
+Set aProblemList = Patient.ProblemList
+Set aCategories = aProblemList.Categories
+Dim hasDiabetesFound ' Declare hasDiabetesFound here and initialize it to False
 
-'spstUnknown	0	  
-'spstNonSmoker	1	  
-'spstSmoker	2	  
-'spstExSmoker	3	  
-'spstPassiveSmoker	4 
+For Each aCategory In aCategories
+    If aCategory.Description = "Diagnosis" Then
+        Dim aProblems ' Declare aProblems here
+        Set aProblems = aCategory.Problems ' Populate aProblems here
+        For Each aProblem In aProblems
+            If Left(aProblem.DxCode, 3) = "250" And aProblem.Status = 1 Then
+                hasDiabetesFound = True
+                Exit For ' Exit the loop as soon as diabetes is found
+            End If
+        Next
+        Exit For ' Exit the outer loop once the "Diagnosis" category is found
+    End If
+Next
+
+' Set HasDiabetes based on whether diabetes was found or not
+If hasDiabetesFound Then
+    HasDiabetes = 1
+Else
+    HasDiabetes = 0
+End If
+
+Profile.MsgBox("Has Diabetes: " & HasDiabetes & ", Type: " & TypeName(HasDiabetes))
 
 
-'Get diabetes status: 
+' Ask about hypertension treatment
+Dim hypertensionTreatment
+hypertensionTreatment = InputBox("Is the patient being treated for hypertension?" & vbCrLf & "Please enter 'Yes' or 'No'", "Hypertension Treatment")
 
-'Get patient problem list 
-Set aProblemList = Patient.ProblemList 
+Profile.MsgBox "Hypertension Treatment: " & hypertensionTreatment & ", Type: " & TypeName(hypertensionTreatment)
 
-'Get list of problem list categories 
-Set aCategories = aProblemList.Categories 
+' Ask about family history of CVD
+Dim familyHistoryCVD
+familyHistoryCVD = InputBox("Does the patient have a family history of cardiovascular disease (CVD)?" & vbCrLf & "Please enter 'Yes' or 'No'", "Family History of CVD")
 
-'Loop through all categories to look under "Diagnosis" 
-For Each aCategory In aCategories 
-    ' Check if the category description is "Diagnosis" 
-    If aCategory.Description = "Diagnosis" Then 
-        aMessage = "Active Problems with Codes Starting with 250:" & vbNewLine & vbNewLine 
-        Set aProblems = aCategory.Problems 
-        For Each aProblem In aProblems 
+Profile.MsgBox "Family History of CVD: " & familyHistoryCVD & ", Type: " & TypeName(familyHistoryCVD)
 
-            ' Check if the problem code starts with "706" and is active (Status = 1) 
-            If Left(aProblem.DxCode, 3) = "250" And aProblem.Status = 1 Then 
-                aMessage = aMessage & "Code: " & aProblem.DxCode & "; Status: " & aProblem.Status & vbNewLine 
-            End If 
-        Next 
-        Exit For ' Exit the loop once the "Diagnosis" category is found 
-    End If 
-Next 
 
-Profile.MsgBox aMessage 
+' Calculate Framingham Risk Score
+' Add your Framingham Risk Score calculation logic here
+' You'll need to use the variables age, gender, systolicPressure, cholesterolValue, HDLValue, smoker, HasDiabetes, 
+' hypertensionTreatment, and familyHistoryCVD to calculate the risk score.
+
+' Display the calculated Framingham Risk Score
+' Profile.MsgBox("Framingham Risk Score: " & YourCalculatedRiskScore)
